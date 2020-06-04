@@ -1,51 +1,107 @@
 
 const express = require('express')
 const app = express()
+const bodyParser = require('body-parser')
 const port = process.env.PORT || 4000
 
 const { users } = require('./state')
 
+//should automatically increase when an ite, it posted to the state.js document. 
+let count = users.length
+
+//want all verbs to know the userId is actually the _id from the user object
+const userId = users._id
+
+//call in the express body parse in order to ex the execute the POST
+  //allows us to pull in json raw documents
+app.use(bodyParser.json())
+  //allows use to pull in url encoded content 
+app.use(bodyParser.urlencoded({ extended: false}))
+
 /* BEGIN - create routes here */
+//GET object list of people from the state.js file, as listed in the imported document under users. 
 app.get(('/users'), (req, res, next) => {
-  //returns the files located in the users from the variable imported above 
+  //returns that users file. 
   res.json(users)
+  //include next so we know we want to continue to the next get 
   next()
 })
 //this ones will return the individual based on the provided input 
-app.get(('/users/:_id'), (req, res, next) => {
+app.get(('/users/:userId'), (req, res, next) => {
   //we need to located the id first in the users profile 
- const findId =  res.json(users.filter(user => user._id == parseInt(req.params._id))) 
+ const findId =  res.json(users.filter(user => user.userId === parseInt(req.params.userId))) 
  
- if(findId === true) {
+ if(findId) {
    return findId
+   //if its not a valid id, we want to return an error 
+    //~~this is not currently working. 
  } else {
-   return res.status(!200).json({msg: `There is not user with the id of ${req.params._id}`})
+   res.status(400).json({msg: `There is not user with the id of ${req.params.userId}`})
  }
+ //include so we know we want to continue 
  next()
 })
 
+//create new person in my state.js
 app.post(('/users'), (req, res) => {
-  const newPerson = {
-    //since this does seem to go with their location in the object, why not hard code it in. 
-      _id: users.length+1,
+  //we have to create a json acceptable format so we can enter that new information to match that of the state.js document. 
+  //console.log(`here is the post element, ${req}`)
+  const newEntry = { 
+  
+      _id: count+1, //since this is going on the send, that we should be able to just increase based increasing length of the document as it is created, assuming we are posting one at a time. 
+    
+      //we are requesting the content to be updated via json formatting. so we req. the content in the body with the name or occupation. 
+        //~~do we need to edit the head for this? 
       name: req.body.name,
       occupation: req.body.occupation,
-      //need to make sure this is an image
+      //we need to conclude logic that states this is a link to an img. 
       avatar: req.body.avatar 
   }
+  //console.log(`this is my new addition object ${newEntry}`)
   // need to require their name and occupation, but the picture is optional
-  if(!newPerson.name || !newPerson.occupation) {
-    return res.status(!200).json({msg: 'Please include a name and occupation'})
-  } else {
+  if(!newEntry.name || !newEntry.occupation) {
+    //if you are missing the name or occupation, then is not a valid entry.
+        //tried to use !200 here instead and it would not work, why not?
+    return res.status(400).json({msg: 'Please include a name and occupation'})
+  } 
     //add the new entry to the object where it will be stored
-    user.push(newPerson)
+    users.push(newEntry)
     //return the whole new object with the new person included  
     return res.json(users)
-  }
-
 })
 
+//update the content within the 1st users
+app.put(('users/:userId'), (req, res) => {
+  console.log('hello, you are inside the put request')
+  //find the individual we are looking for 
+  const findId =  res.json(users.filter(user => user._id === parseInt(req.params.userId))) 
+
+  const updateEntry = req.body
+  //located the matching person in your state object.
+  users.forEach((user) => { 
+    if (findId) {
+      user.name = updateEntry.name ? updateEntry.name : user.name,
+      user.occupation = updateEntry.occupation ? updateEntry.occupation : user.occupation
+
+      return res.json({msg: 'We updated this entry', user})
+    } else {
+      return res.status(400).json({msg: 'Please include a name and occupation'})
+    }
+  })
+})
+
+//delete the first user
+  //~~nothing is currently happening 
+app.delete(('/users/:userId'), (req, res) => {
+  //find the id entry you are looking for 
+  const findId =  res.json(users.filter(user => user.userId === parseInt(req.params.userId)))
+  //find the index of that I 
+  if (findId) {
+    res.send('deleted')
+  }
+})
 /* END - create routes here */
+
 
 app.listen(port, () => 
   console.log(`Example app listening on port ${port}!`))
