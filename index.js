@@ -10,7 +10,6 @@ const { users } = require('./state')
 let count = users.length
 
 //want all verbs to know the userId is actually the _id from the user object
-const userId = users._id
 
 //call in the express body parse in order to ex the execute the POST
   //allows us to pull in json raw documents
@@ -27,19 +26,16 @@ app.get(('/users'), (req, res, next) => {
   next()
 })
 //this ones will return the individual based on the provided input 
-app.get(('/users/:userId'), (req, res, next) => {
-  //we need to located the id first in the users profile 
- const findId =  res.json(users.filter(user => user.userId === parseInt(req.params.userId))) 
- 
- if(findId) {
-   return findId
-   //if its not a valid id, we want to return an error 
-    //~~this is not currently working. 
- } else {
+app.get(('/users/:userId'), (req, res) => {
+  //we need to located the id first in the users profile
+ const findId =  res.json(users.filter(user => user._id === parseInt(req.params.userId))) 
+ console.log(findId)
+ const userFound = findId[0]
+
+ if(!userFound) {
    res.status(400).json({msg: `There is not user with the id of ${req.params.userId}`})
- }
- //include so we know we want to continue 
- next()
+ } 
+ res.json(userFound)
 })
 
 //create new person in my state.js
@@ -71,34 +67,37 @@ app.post(('/users'), (req, res) => {
 })
 
 //update the content within the 1st users
-app.put(('users/:userId'), (req, res) => {
+app.put(('/users/:userId'), (req, res) => {
   console.log('hello, you are inside the put request')
   //find the individual we are looking for 
-  const findId =  res.json(users.filter(user => user._id === parseInt(req.params.userId))) 
-
+  const findId =  users.filter(user => user._id === parseInt(req.params.userId))[0]
+  console.log('find that id',findId)
   const updateEntry = req.body
   //located the matching person in your state object.
-  users.forEach((user) => { 
     if (findId) {
-      user.name = updateEntry.name ? updateEntry.name : user.name,
-      user.occupation = updateEntry.occupation ? updateEntry.occupation : user.occupation
-
-      return res.json({msg: 'We updated this entry', user})
+      findId.name = updateEntry.name ? updateEntry.name : user.name,
+      findId.occupation = updateEntry.occupation ? updateEntry.occupation : user.occupation
+      res.send(users)
     } else {
-      return res.status(400).json({msg: 'Please include a name and occupation'})
+      res.status(400).json({msg: 'User not found'})
     }
-  })
 })
 
 //delete the first user
-  //~~nothing is currently happening 
 app.delete(('/users/:userId'), (req, res) => {
+  // console.log('am I getting here')
+  // console.log('req looks like', req)
   //find the id entry you are looking for 
-  const findId =  res.json(users.filter(user => user.userId === parseInt(req.params.userId)))
-  //find the index of that I 
-  if (findId) {
-    res.send('deleted')
-  }
+  const findId =  users.filter(user => user._id === parseInt(req.params.userId))[0]
+  console.log('the result of the find', findId)
+  //the the header set it to false or checking if thats false 
+   if (!findId) {
+    res.status(400).send('no user found')
+  } 
+  //don't have the proper logic to remove this from the object. 
+  findId.isActive = false
+  res.send('deleted')
+  
 })
 /* END - create routes here */
 
